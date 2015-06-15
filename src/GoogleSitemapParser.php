@@ -9,6 +9,7 @@ use tzfrs\Exceptions\GoogleSitemapParserException;
  * Class GoogleSitemapParser
  * @package tzfrs
  * @version 1.0.1
+ * @license MIT License
  *
  * This is the class that handles the parsing of the sitemap
  */
