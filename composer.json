@@ -1,0 +1,24 @@
+{
+  "name": "tzfrs/googlesitemapparser",
+  "description": "Google Sitemap is a Sitemap standard that is supported by Ask.com, Google, YAHOO and MSN Search. This library can read in such Sitemaps and parse all urls from them.",
+  "keywords": ["google", "sitemap", "google sitemap", "google sitemap to json", "json", "array", "parser"],
+  "minimum-stability": "stable",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Theo Tzaferis",
+      "email": "theo@tzfrs.de",
+      "homepage": "http://tzfrs.de"
+    }
+  ],
+  "require": {
+    "php": ">=5.5.9",
+    "jyggen/curl": "v4.0.0-RC1"
+  },
+  "autoload": {
+    "psr-4": {
+      "tzfrs\\" : "src/",
+      "tzfrs\\Tests\\": "tests/"
+    }
+  }
+}
