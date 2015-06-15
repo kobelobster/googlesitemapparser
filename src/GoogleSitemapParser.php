@@ -1,5 +1,6 @@
 <?php namespace tzfrs;
 
+use SimpleXMLElement;
 use Jyggen\Curl\Curl;
 use Symfony\Component\HttpFoundation\Response;
 use tzfrs\Exceptions\GoogleSitemapParserException;
@@ -13,17 +14,6 @@ use tzfrs\Exceptions\GoogleSitemapParserException;
  */
 class GoogleSitemapParser
 {
-    /**
-     * The constructor of this class checks whether cURL is installed or not
-     * @throws GoogleSitemapParserException
-     */
-    public function __construct()
-    {
-        if (!function_exists('curl_exec')) {
-            throw new GoogleSitemapParserException('The cURL extension must be installed to use this library');
-        }
-    }
-
     /**
      * This is the main method for the class. It firstly validates the URL and the XML of the URL and then
      * gets the post for the sitemap from the current URL
@@ -42,17 +32,14 @@ class GoogleSitemapParser
         if ($response->getStatusCode() < 200 || $response->getStatusCode() >= 400) {
             throw new GoogleSitemapParserException('The server responds with a bad status code: '. $response->getStatusCode());
         }
-        $response = $response->getContent();
-        $gsParser = new self;
-        if ($gsParser->validateXML($response) === false) {
+        $response   = $response->getContent();
+        $gsParser   = new self;
+        /** @var bool|SimpleXMLElement $validXML */
+        $validXML   = $gsParser->validateXML($response);
+        if ($validXML === false) {
             throw new GoogleSitemapParserException('The XML found on the given URL doesn\'t appear to be valid according to ');
         }
-        $xml    = simplexml_load_string($response);
-        $json   = json_encode($xml);
-        if (json_last_error() !== 0) {
-            throw new GoogleSitemapParserException('Error encoding the XML to json: '. json_last_error_msg());
-        }
-        $posts = $gsParser->getPosts(json_decode($json));
+        $posts = $gsParser->getPosts($validXML);
         foreach ($posts as $subElement) {
             if (is_array($subElement)) {
                 $posts = array_unique(call_user_func_array('array_merge', $posts));
@@ -67,26 +54,22 @@ class GoogleSitemapParser
      * the URLs in the sitemap are posts or links to a sub-sitemap. Dependent on that the method then reads in the
      * sitemap urls
      *
-     * @param \stdClass $sitemapJson The json-decoded object containing the sitemap information
+     * @param SimpleXMLElement $sitemapJson The json-decoded object containing the sitemap information
      * @return array Returns the posts
      * @throws GoogleSitemapParserException
      */
-    protected function getPosts($sitemapJson)
+    protected function getPosts(SimpleXMLElement $sitemapJson)
     {
         $posts = [];
         if (isset($sitemapJson->sitemap)) {
             foreach ($sitemapJson->sitemap as $post) {
                 if (substr($post->loc, -3) == "xml") {
-                    $posts[] = self::parse($post->loc);
+                    $posts[] = self::parse((string)$post->loc);
                 }
             }
         } elseif (isset($sitemapJson->url)) {
-            if (is_object($sitemapJson->url)) {
-                $posts[] = $sitemapJson->url->loc;
-            } else {
-                foreach ($sitemapJson->url as $url) {
-                    $posts[] = $url->loc;
-                }
+            foreach ($sitemapJson->url as $url) {
+                $posts[] = (string)$url->loc;
             }
         } else {
             throw new GoogleSitemapParserException('Sitemap has no posts');
@@ -108,6 +91,6 @@ class GoogleSitemapParser
             libxml_clear_errors();
             return false;
         }
-        return true;
+        return $doc;
     }
 }
