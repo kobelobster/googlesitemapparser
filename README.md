@@ -34,6 +34,6 @@ try {
 }
 ```
 
-
-
 Contributing is surely allowed! :-)
+
+See the file `LICENSE` for licensing informations
