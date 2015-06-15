@@ -8,7 +8,7 @@ Install via [composer](https://getcomposer.org):
 ```javascript
 {
     "require": {
-        "tzfrs/googlesitemapparser": "1.0.1"
+        "tzfrs/googlesitemapparser": "1.0.3"
     }
 }
 ```
