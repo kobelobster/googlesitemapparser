@@ -1,4 +1,5 @@
 <?php namespace tzfrs;
+
 use Jyggen\Curl\Curl;
 use Symfony\Component\HttpFoundation\Response;
 use tzfrs\Exceptions\GoogleSitemapParserException;
@@ -6,11 +7,11 @@ use tzfrs\Exceptions\GoogleSitemapParserException;
 /**
  * Class GoogleSitemapParser
  * @package tzfrs
- * @version 1.0
+ * @version 1.0.1
  *
  * This is the class that handles the parsing of the sitemap
  */
-class GoogleSitemapParser 
+class GoogleSitemapParser
 {
     /**
      * The constructor of this class checks whether cURL is installed or not
@@ -18,7 +19,7 @@ class GoogleSitemapParser
      */
     public function __construct()
     {
-        if(!function_exists('curl_exec')) {
+        if (!function_exists('curl_exec')) {
             throw new GoogleSitemapParserException('The cURL extension must be installed to use this library');
         }
     }
