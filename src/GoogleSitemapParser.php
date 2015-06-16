@@ -1,8 +1,7 @@
 <?php namespace tzfrs;
 
 use SimpleXMLElement;
-use Jyggen\Curl\Curl;
-use Symfony\Component\HttpFoundation\Response;
+use jyggen\Curl;
 use tzfrs\Exceptions\GoogleSitemapParserException;
 
 /**
@@ -15,39 +14,37 @@ use tzfrs\Exceptions\GoogleSitemapParserException;
  */
 class GoogleSitemapParser
 {
+
+    /**
+     * The URL that will be parsed
+     * @var null|string
+     */
+    protected $url = null;
+
+    /**
+     * The constructor checks if the SimpleXML Extension is loaded and afterwards sets the URL to parse
+     *
+     * @param string $url The URL of the Sitemap
+     * @throws GoogleSitemapParserException
+     */
+    public function __construct($url)
+    {
+        if (!extension_loaded('simplexml')) {
+            throw new GoogleSitemapParserException('The extension `simplexml` must be installed and loaded for this library');
+        }
+        $this->url = $url;
+    }
+
     /**
      * This is the main method for the class. It firstly validates the URL and the XML of the URL and then
      * gets the post for the sitemap from the current URL
      *
-     * @param string $url The URL of the Sitemap
-     * @return array The array with the Posts
+     * @return array
      * @throws GoogleSitemapParserException
      */
-    public static function parse($url)
+    public function parse()
     {
-        if (!filter_var($url, FILTER_VALIDATE_URL)) {
-            throw new GoogleSitemapParserException('Passed URL not valid according to filter_var function');
-        }
-        /** @var Response $response */
-        $response = Curl::get($url)[0];
-        if ($response->getStatusCode() < 200 || $response->getStatusCode() >= 400) {
-            throw new GoogleSitemapParserException('The server responds with a bad status code: '. $response->getStatusCode());
-        }
-        $response   = $response->getContent();
-        $gsParser   = new self;
-        /** @var bool|SimpleXMLElement $validXML */
-        $validXML   = $gsParser->validateXML($response);
-        if ($validXML === false) {
-            throw new GoogleSitemapParserException('The XML found on the given URL doesn\'t appear to be valid according to ');
-        }
-        $posts = $gsParser->getPosts($validXML);
-        foreach ($posts as $subElement) {
-            if (is_array($subElement)) {
-                $posts = array_unique(call_user_func_array('array_merge', $posts));
-                break;
-            }
-        }
-        return $posts;
+        return $this->getPosts();
     }
 
     /**
@@ -55,27 +52,49 @@ class GoogleSitemapParser
      * the URLs in the sitemap are posts or links to a sub-sitemap. Dependent on that the method then reads in the
      * sitemap urls
      *
-     * @param SimpleXMLElement $sitemapJson The json-decoded object containing the sitemap information
-     * @return array Returns the posts
      * @throws GoogleSitemapParserException
      */
-    protected function getPosts(SimpleXMLElement $sitemapJson)
+    protected function getPosts()
     {
-        $posts = [];
+        if (!filter_var($this->url, FILTER_VALIDATE_URL)) {
+            throw new GoogleSitemapParserException('Passed URL not valid according to filter_var function');
+        }
+        /** @var \Symfony\Component\HttpFoundation\Response $response */
+        $response = Curl::get($this->url)[0];
+        if ($response->getStatusCode() < 200 || $response->getStatusCode() >= 400) {
+            throw new GoogleSitemapParserException('The server responds with a bad status code: '. $response->getStatusCode());
+        }
+        /** @var bool|SimpleXMLElement $sitemapJson */
+        $sitemapJson   = $this->validateXML($response);
+        if ($sitemapJson === false) {
+            throw new GoogleSitemapParserException('The XML found on the given URL doesn\'t appear to be valid according to simplexml_load_string/libxml');
+        }
         if (isset($sitemapJson->sitemap)) {
             foreach ($sitemapJson->sitemap as $post) {
-                if (substr($post->loc, -3) == "xml") {
-                    $posts[] = self::parse((string)$post->loc);
+                if (substr($post->loc, -3) === "xml") {
+                    $this->setUrl((string)$post->loc);
+                    foreach ($this->getPosts() as $subPost) {
+                        yield $subPost;
+                    }
                 }
             }
         } elseif (isset($sitemapJson->url)) {
             foreach ($sitemapJson->url as $url) {
-                $posts[] = (string)$url->loc;
+                yield (string)$url->loc;
             }
-        } else {
-            throw new GoogleSitemapParserException('Sitemap has no posts');
         }
-        return $posts;
+    }
+
+    /**
+     * Setter for the url variable. Used to modify the URL
+     *
+     * @param string $url The url that should be set
+     * @return $this Returns itself
+     */
+    public function setUrl($url)
+    {
+        $this->url = $url;
+        return $this;
     }
 
     /**

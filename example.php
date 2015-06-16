@@ -5,7 +5,7 @@ use \tzfrs\GoogleSitemapParser;
 use \tzfrs\Exceptions\GoogleSitemapParserException;
 
 try {
-    $posts = GoogleSitemapParser::parse('http://tzfrs.de/sitemap.xml');
+    $posts = (new GoogleSitemapParser('http://tzfrs.de/sitemap.xml'))->parse();
     foreach ($posts as $post) {
         print $post . '<br>';
     }

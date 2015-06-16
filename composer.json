@@ -13,7 +13,7 @@
   ],
   "require": {
     "php": ">=5.5.9",
-    "jyggen/curl": "v4.0.0-RC1"
+    "jyggen/curl": "v3.0.1"
   },
   "autoload": {
     "psr-4": {

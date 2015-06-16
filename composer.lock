@@ -4,42 +4,39 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "72afa252fd194edacb2612f4148a9b79",
+    "hash": "bb814a300754b640fffc4bfc15305964",
     "packages": [
         {
             "name": "jyggen/curl",
-            "version": "v4.0.0-RC1",
+            "version": "v3.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jyggen/curl.git",
-                "reference": "7aadcf0ea7679948091533a6a32b155e6494f374"
+                "reference": "6ff247fd855e80e50baf67f6147c62e5bff42c4f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jyggen/curl/zipball/7aadcf0ea7679948091533a6a32b155e6494f374",
-                "reference": "7aadcf0ea7679948091533a6a32b155e6494f374",
+                "url": "https://api.github.com/repos/jyggen/curl/zipball/6ff247fd855e80e50baf67f6147c62e5bff42c4f",
+                "reference": "6ff247fd855e80e50baf67f6147c62e5bff42c4f",
                 "shasum": ""
             },
             "require": {
                 "ext-curl": "*",
                 "php": ">=5.3.0",
-                "symfony/http-foundation": "^2.0.5"
+                "symfony/http-foundation": "~2.0"
             },
             "require-dev": {
-                "mockery/mockery": "~0.9",
-                "phpunit/phpunit": "~4.0",
-                "squizlabs/php_codesniffer": "~1.5"
+                "mockery/mockery": "dev-master"
             },
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "4.0-dev"
+                    "dev-master": "3.1-dev"
                 }
             },
             "autoload": {
-                "psr-4": {
-                    "Jyggen\\Curl\\": "src",
-                    "Jyggen\\Curl\\Tests\\": "tests"
+                "psr-0": {
+                    "jyggen\\Curl": "lib/"
                 }
             },
             "notification-url": "https://packagist.org/downloads/",
@@ -55,18 +52,17 @@
                 }
             ],
             "description": "A simple and lightweight cURL library with support for multiple requests in parallel.",
-            "homepage": "https://github.com/jyggen/curl",
+            "homepage": "http://docs.jyggen.com/curl",
             "keywords": [
                 "Multi-thread",
                 "bot",
-                "crawler",
                 "curl",
                 "http",
+                "laravel",
                 "parallel",
-                "request",
                 "spider"
             ],
-            "time": "2015-06-09 14:51:27"
+            "time": "2013-08-21 11:59:16"
         },
         {
             "name": "symfony/http-foundation",
@@ -125,9 +121,7 @@
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "jyggen/curl": 5
-    },
+    "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
