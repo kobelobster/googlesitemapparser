@@ -8,7 +8,7 @@ Install via [composer](https://getcomposer.org):
 ```javascript
 {
     "require": {
-        "tzfrs/googlesitemapparser": "1.0.3"
+        "tzfrs/googlesitemapparser": "1.0.4"
     }
 }
 ```
@@ -25,7 +25,7 @@ use \tzfrs\GoogleSitemapParser;
 use \tzfrs\Exceptions\GoogleSitemapParserException;
 
 try {
-    $posts = GoogleSitemapParser::parse('http://tzfrs.de/sitemap.xml');
+    $posts = (new GoogleSitemapParser('http://tzfrs.de/sitemap.xml'))->parse();
     foreach ($posts as $post) {
         print $post . '<br>';
     }
