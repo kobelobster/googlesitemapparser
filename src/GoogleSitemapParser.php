@@ -2,6 +2,7 @@
 
 use SimpleXMLElement;
 use jyggen\Curl;
+use jyggen\Curl\Request;
 use tzfrs\Exceptions\GoogleSitemapParserException;
 
 /**
@@ -36,44 +37,52 @@ class GoogleSitemapParser
     }
 
     /**
-     * This is the main method for the class. It firstly validates the URL and the XML of the URL and then
-     * gets the post for the sitemap from the current URL
-     *
-     * @return array
-     * @throws GoogleSitemapParserException
-     */
-    public function parse()
-    {
-        return $this->getPosts();
-    }
-
-    /**
      * This method reads in the json-decoded XML String from the page and analyzes it. It checks whether
      * the URLs in the sitemap are posts or links to a sub-sitemap. Dependent on that the method then reads in the
      * sitemap urls
-     *
+     * @param string $url Optional parameter when not wanting to use the current set URL
+     * @return \Generator
      * @throws GoogleSitemapParserException
      */
-    protected function getPosts()
+    public function parse($url = null)
     {
-        if (!filter_var($this->url, FILTER_VALIDATE_URL)) {
-            throw new GoogleSitemapParserException('Passed URL not valid according to filter_var function');
+        $url        = ($url === null) ? $this->url : $url;
+        $response   = $this->getContent($url);
+        return $this->parseFromXMLString($response);
+    }
+
+    public function parseFromRobots($url = null)
+    {
+        $url = ($url === null) ? $this->url : $url;
+        $response = $this->getContent($url);
+        preg_match_all('#Sitemap:\s*(.*)#', $response, $matchatches);
+        if (isset($matchatches[1])) {
+            foreach ($matchatches[1] as $sitemap) {
+                if (substr($sitemap, -3) === "xml") {
+                    foreach ($this->parse($sitemap) as $subPost) {
+                        yield $subPost;
+                    }
+                } elseif (substr($sitemap, -6) === 'xml.gz') {
+                    foreach ($this->parseFromXMLString($this->downloadAndExtractGZIP($sitemap)) as $subPost) {
+                        yield $subPost;
+                    }
+                }
+            }
         }
-        /** @var \Symfony\Component\HttpFoundation\Response $response */
-        $response = Curl::get($this->url)[0];
-        if ($response->getStatusCode() < 200 || $response->getStatusCode() >= 400) {
-            throw new GoogleSitemapParserException('The server responds with a bad status code: '. $response->getStatusCode());
-        }
+    }
+
+    public function parseFromXMLString($string)
+    {
         /** @var bool|SimpleXMLElement $sitemapJson */
-        $sitemapJson   = $this->validateXML($response);
-        if ($sitemapJson === false) {
+        $sitemapJson   = $this->validateXML($string);
+        if ($sitemapJson === false && empty($string)) {
             throw new GoogleSitemapParserException('The XML found on the given URL doesn\'t appear to be valid according to simplexml_load_string/libxml');
         }
+
         if (isset($sitemapJson->sitemap)) {
             foreach ($sitemapJson->sitemap as $post) {
                 if (substr($post->loc, -3) === "xml") {
-                    $this->setUrl((string)$post->loc);
-                    foreach ($this->getPosts() as $subPost) {
+                    foreach ($this->parse((string)$post->loc) as $subPost) {
                         yield $subPost;
                     }
                 }
@@ -82,19 +91,13 @@ class GoogleSitemapParser
             foreach ($sitemapJson->url as $url) {
                 yield (string)$url->loc;
             }
+        } else {
+            $offset = 0;
+            while (preg_match('/(\S+)/', $string, $match, PREG_OFFSET_CAPTURE, $offset)) {
+                $offset = $match[0][1] + strlen($match[0][0]);
+                yield $match[0][0];
+            }
         }
-    }
-
-    /**
-     * Setter for the url variable. Used to modify the URL
-     *
-     * @param string $url The url that should be set
-     * @return $this Returns itself
-     */
-    public function setUrl($url)
-    {
-        $this->url = $url;
-        return $this;
     }
 
     /**
@@ -112,5 +115,53 @@ class GoogleSitemapParser
             return false;
         }
         return $doc;
+    }
+
+    /**
+     * @param string $url The URL of the gzip
+     * @return string
+     * @throws Curl\Exception\CurlErrorException
+     * @throws Curl\Exception\ProtectedOptionException
+     */
+    protected function downloadAndExtractGZIP($url)
+    {
+        $request = new Request($url);
+        $request->setOption(CURLOPT_ENCODING, '');
+        $request->execute();
+        /** @var \Symfony\Component\HttpFoundation\Response $response */
+        $response = $request->getResponse();
+        return $response->getContent();
+    }
+
+
+    /**
+     * Returns the content of a page
+     * @param string $url the URL that should be gathered
+     * @return \Symfony\Component\HttpFoundation\Response
+     * @throws GoogleSitemapParserException
+     */
+    protected function getContent($url)
+    {
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            throw new GoogleSitemapParserException('Passed URL not valid according to filter_var function');
+        }
+        /** @var \Symfony\Component\HttpFoundation\Response $response */
+        $response = Curl::get($url)[0];
+        if ($response->getStatusCode() < 200 || $response->getStatusCode() >= 400) {
+            throw new GoogleSitemapParserException('The server responds with a bad status code: '. $response->getStatusCode());
+        }
+        return $response->getContent();
+    }
+
+    /**
+     * Setter for the url variable. Used to modify the URL
+     *
+     * @param string $url The url that should be set
+     * @return $this Returns itself
+     */
+    public function setUrl($url)
+    {
+        $this->url = $url;
+        return $this;
     }
 }
