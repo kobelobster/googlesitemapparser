@@ -23,17 +23,24 @@ class GoogleSitemapParser
     protected $url = null;
 
     /**
+     * Whether the priority of the sitemap entry should be also gathered
+     * @var bool
+     */
+    protected $includePriority = false;
+    /**
      * The constructor checks if the SimpleXML Extension is loaded and afterwards sets the URL to parse
      *
      * @param string $url The URL of the Sitemap
+     * @param bool $includePriority Whether the priority of the sitemap entry should be also gathered
      * @throws GoogleSitemapParserException
      */
-    public function __construct($url)
+    public function __construct($url, $includePriority = false)
     {
         if (!extension_loaded('simplexml')) {
             throw new GoogleSitemapParserException('The extension `simplexml` must be installed and loaded for this library');
         }
-        $this->url = $url;
+        $this->url              = $url;
+        $this->includePriority  = $includePriority;
     }
 
     /**
@@ -59,12 +66,12 @@ class GoogleSitemapParser
         if (isset($matchatches[1])) {
             foreach ($matchatches[1] as $sitemap) {
                 if (substr($sitemap, -3) === "xml") {
-                    foreach ($this->parse($sitemap) as $subPost) {
-                        yield $subPost;
+                    foreach ($this->parse($sitemap) as $key=>$subPost) {
+                        yield $key=>$subPost;
                     }
                 } elseif (substr($sitemap, -6) === 'xml.gz') {
-                    foreach ($this->parseFromXMLString($this->downloadAndExtractGZIP($sitemap)) as $subPost) {
-                        yield $subPost;
+                    foreach ($this->parseFromXMLString($this->downloadAndExtractGZIP($sitemap)) as $key=>$subPost) {
+                        yield $key=>$subPost;
                     }
                 }
             }
@@ -89,7 +96,11 @@ class GoogleSitemapParser
             }
         } elseif (isset($sitemapJson->url)) {
             foreach ($sitemapJson->url as $url) {
-                yield (string)$url->loc;
+                if ($this->includePriority) {
+                    yield (string)$url->loc => (string)$url->priority;
+                } else {
+                    yield (string)$url->loc;
+                }
             }
         } else {
             $offset = 0;
@@ -162,6 +173,18 @@ class GoogleSitemapParser
     public function setUrl($url)
     {
         $this->url = $url;
+        return $this;
+    }
+
+    /**
+     * Setter for the includePriority variable. Used to modify if the response should contain includePriority
+     *
+     * @param bool $includePriority Whether the priority of the sitemap entry should be also gathered
+     * @return $this Returns itself
+     */
+    public function setIncludePriority($includePriority)
+    {
+        $this->includePriority = $includePriority;
         return $this;
     }
 }
