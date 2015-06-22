@@ -26,21 +26,21 @@ class GoogleSitemapParser
      * Whether the priority of the sitemap entry should be also gathered
      * @var bool
      */
-    protected $includePriority = false;
+    protected $includeInformation = false;
     /**
      * The constructor checks if the SimpleXML Extension is loaded and afterwards sets the URL to parse
      *
      * @param string $url The URL of the Sitemap
-     * @param bool $includePriority Whether the priority of the sitemap entry should be also gathered
+     * @param bool $includeInformation Whether the priority of the sitemap entry should be also gathered
      * @throws GoogleSitemapParserException
      */
-    public function __construct($url, $includePriority = false)
+    public function __construct($url, $includeInformation = false)
     {
         if (!extension_loaded('simplexml')) {
             throw new GoogleSitemapParserException('The extension `simplexml` must be installed and loaded for this library');
         }
-        $this->url              = $url;
-        $this->includePriority  = $includePriority;
+        $this->url                  = $url;
+        $this->includeInformation   = $includeInformation;
     }
 
     /**
@@ -96,8 +96,11 @@ class GoogleSitemapParser
             }
         } elseif (isset($sitemapJson->url)) {
             foreach ($sitemapJson->url as $url) {
-                if ($this->includePriority) {
-                    yield (string)$url->loc => (string)$url->priority;
+                if ($this->includeInformation) {
+                    yield (string)$url->loc => [
+                        'priority'  => (string)$url->priority,
+                        'lastmod'   => (string)$url->lastmod,
+                    ];
                 } else {
                     yield (string)$url->loc;
                 }
@@ -179,12 +182,12 @@ class GoogleSitemapParser
     /**
      * Setter for the includePriority variable. Used to modify if the response should contain includePriority
      *
-     * @param bool $includePriority Whether the priority of the sitemap entry should be also gathered
+     * @param bool $includeInformation Whether the priority of the sitemap entry should be also gathered
      * @return $this Returns itself
      */
-    public function setIncludePriority($includePriority)
+    public function setIncludeInformation($includeInformation)
     {
-        $this->includePriority = $includePriority;
+        $this->includeInformation = $includeInformation;
         return $this;
     }
 }
