@@ -115,6 +115,21 @@ class GoogleSitemapParser
     }
 
     /**
+     * Method used to parse compressed sitemaps such as example.com/sitemap.xml.gz
+     *
+     * @param string|null $url
+     * @return \Generator
+     * @throws GoogleSitemapParserException
+     */
+    public function parseCompressed($url = null)
+    {
+        $url = ($url === null) ? $this->url : $url;
+        foreach ($this->parseFromXMLString($this->downloadAndExtractGZIP($url)) as $key=>$subPost) {
+            yield $key=>$subPost;
+        }
+    }
+
+    /**
      * Checks if the XML from the given page is valid or not
      *
      * @param string $xmlstr The XML to be checked
@@ -133,18 +148,22 @@ class GoogleSitemapParser
 
     /**
      * @param string $url The URL of the gzip
-     * @return string
-     * @throws Curl\Exception\CurlErrorException
+     * @return string the uncompressed downloaded content
      * @throws Curl\Exception\ProtectedOptionException
+     * @throws GoogleSitemapParserException
      */
     protected function downloadAndExtractGZIP($url)
     {
-        $request = new Request($url);
-        $request->setOption(CURLOPT_ENCODING, '');
-        $request->execute();
-        /** @var \Symfony\Component\HttpFoundation\Response $response */
-        $response = $request->getResponse();
-        return $response->getContent();
+        try {
+            $request = new Request($url);
+            $request->setOption(CURLOPT_ENCODING, '');
+            $request->execute();
+            /** @var \Symfony\Component\HttpFoundation\Response $response */
+            $response = $request->getResponse();
+            return $response->getContent();
+        } catch (Curl\Exception\CurlErrorException $e) {
+            throw new GoogleSitemapParserException($e->getMessage());
+        }
     }
 
 
