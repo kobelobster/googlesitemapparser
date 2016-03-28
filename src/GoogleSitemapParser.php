@@ -92,6 +92,10 @@ class GoogleSitemapParser
                     foreach ($this->parse((string)$post->loc) as $subPost) {
                         yield $subPost;
                     }
+                } elseif (substr($post->loc, -6) === 'xml.gz') {
+                    foreach ($this->parseCompressed((string)$post->loc) as $subPost) {
+                        yield $subPost;
+                    }
                 }
             }
         } elseif (isset($sitemapJson->url)) {
