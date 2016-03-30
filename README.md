@@ -19,7 +19,7 @@ Run `composer install` or `composer update`.
 #### Sitemap
 Parses sitemap URLs of your choice. Supports `.xml`, `.xml.gz` and plain text.
 #### robots.txt
-Searches for Sitemap entries in the robots.txt and parses those files. Also downloads/extracts gzip compressed sitemaps and searches for them
+Searches for Sitemap entries in the robots.txt and parses those files.
 
 
 ## Getting Started
