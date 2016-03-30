@@ -1,4 +1,5 @@
-<?php namespace tzfrs;
+<?php
+namespace tzfrs;
 
 use jyggen\Curl;
 use jyggen\Curl\Request;
@@ -8,14 +9,12 @@ use tzfrs\Exceptions\GoogleSitemapParserException;
 /**
  * Class GoogleSitemapParser
  * @package tzfrs
- * @version 1.0.1
  * @license MIT License
  *
  * This is the class that handles the parsing of the sitemap
  */
 class GoogleSitemapParser
 {
-
     /**
      * The URL that will be parsed
      * @var null|string
@@ -26,7 +25,7 @@ class GoogleSitemapParser
      * Whether the priority of the sitemap entry should be also gathered
      * @var bool
      */
-    protected $includeInformation = false;
+    protected $asArray = false;
 
     /**
      * Configuration options
@@ -38,17 +37,21 @@ class GoogleSitemapParser
      * The constructor checks if the SimpleXML Extension is loaded and afterwards sets the URL to parse
      *
      * @param string $url The URL of the Sitemap
-     * @param bool $includeInformation Whether the priority of the sitemap entry should be also gathered
+     * @param bool $asArray Whether the priority of the sitemap entry should be also gathered
      * @param array $config Configuration options
      * @throws GoogleSitemapParserException
      */
-    public function __construct($url, $includeInformation = false, $config = [])
+    public function __construct($url, $asArray = false, $config = [])
     {
         if (!extension_loaded('simplexml')) {
             throw new GoogleSitemapParserException('The extension `simplexml` must be installed and loaded for this library');
         }
+
+        mb_language("uni");
+        @mb_internal_encoding('UTF-8');
+
         $this->url = $url;
-        $this->includeInformation = $includeInformation;
+        $this->asArray = $asArray;
         $this->config = $config;
     }
 
@@ -64,22 +67,72 @@ class GoogleSitemapParser
     {
         $url = ($url === null) ? $this->url : $url;
         $response = $this->getContent($url);
-        return $this->parseFromXMLString($response);
+        if (mb_strpos($response, "\x1f" . "\x8b" . "\x08", 0, "US-ASCII") === 0) {
+            $response = gzdecode($response);
+        }
+        if (parse_url($url, PHP_URL_PATH) == '/robots.txt') {
+            return $this->parseRobotstxt($response);
+        }
+        return $this->parseXML($response);
     }
 
-    public function parseFromRobots($url = null)
+    /**
+     * Returns the content of a page
+     * @param string $url the URL that should be gathered
+     * @return mixed raw URL content
+     * @throws GoogleSitemapParserException
+     */
+    protected function getContent($url)
     {
-        $url = ($url === null) ? $this->url : $url;
-        $response = $this->getContent($url);
-        preg_match_all('#Sitemap:\s*(.*)#', $response, $matchatches);
+        /** @var \Symfony\Component\HttpFoundation\Response $response */
+        $response = $this->curlResponse($url);
+        if ($response->getStatusCode() < 200 || $response->getStatusCode() >= 400) {
+            throw new GoogleSitemapParserException('The server responds with a bad status code: ' . $response->getStatusCode());
+        }
+        return $response->getContent();
+    }
+
+    /**
+     * Get URL response from CURL
+     *
+     * @param string $url The url to request
+     * @return \Symfony\Component\HttpFoundation\Response
+     * @throws GoogleSitemapParserException
+     */
+    protected function curlResponse($url)
+    {
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            throw new GoogleSitemapParserException('Passed URL not valid according to filter_var function');
+        }
+        try {
+            $request = new Request($url);
+            $request->setOption(CURLOPT_ENCODING, '');
+            // Apply custom options
+            if (isset($this->config['curl'])) {
+                foreach ($this->config['curl'] as $key => $value) {
+                    $request->setOption($key, $value);
+                }
+            }
+            $request->execute();
+            return $request->getResponse();
+        } catch (Curl\Exception\CurlErrorException $e) {
+            throw new GoogleSitemapParserException($e->getMessage());
+        }
+    }
+
+    /**
+     * Search for sitemaps in the robots.txt content
+     *
+     * @param string $content robots.txt content
+     * @return \Generator
+     */
+    protected function parseRobotstxt($content)
+    {
+        preg_match_all('#Sitemap:\s*(.*)#', $content, $matchatches);
         if (isset($matchatches[1])) {
             foreach ($matchatches[1] as $sitemap) {
-                if (substr($sitemap, -3) === "xml") {
+                if ($this->isSitemapURL($sitemap)) {
                     foreach ($this->parse($sitemap) as $key => $subPost) {
-                        yield $key => $subPost;
-                    }
-                } elseif (substr($sitemap, -6) === 'xml.gz') {
-                    foreach ($this->parseFromXMLString($this->downloadAndExtractGZIP($sitemap)) as $key => $subPost) {
                         yield $key => $subPost;
                     }
                 }
@@ -87,58 +140,57 @@ class GoogleSitemapParser
         }
     }
 
-    public function parseFromXMLString($string)
+    /**
+     * Sitemap URL filter
+     *
+     * @param string $url
+     * @return bool
+     */
+    protected function isSitemapURL($url)
+    {
+        return is_string($url) && (
+            substr($url, -4) === ".xml" ||
+            substr($url, -7) === '.xml.gz'
+        );
+    }
+
+    /**
+     * Parse XML content
+     *
+     * @param string $xml XML content
+     * @return \Generator
+     * @throws GoogleSitemapParserException
+     */
+    public function parseXML($xml)
     {
         /** @var bool|SimpleXMLElement $sitemapJson */
-        $sitemapJson = $this->validateXML($string);
-        if ($sitemapJson === false && empty($string)) {
+        $sitemapJson = $this->validateXML($xml);
+        if ($sitemapJson === false && empty($xml)) {
             throw new GoogleSitemapParserException('The XML found on the given URL doesn\'t appear to be valid according to simplexml_load_string/libxml');
         }
 
         if (isset($sitemapJson->sitemap)) {
             foreach ($sitemapJson->sitemap as $post) {
-                if (substr($post->loc, -3) === "xml") {
-                    foreach ($this->parse((string)$post->loc) as $subPost) {
-                        yield $subPost;
-                    }
-                } elseif (substr($post->loc, -6) === 'xml.gz') {
-                    foreach ($this->parseCompressed((string)$post->loc) as $subPost) {
+                if ($this->isSitemapURL($post->loc)) {
+                    foreach ($this->parse($post->loc) as $subPost) {
                         yield $subPost;
                     }
                 }
             }
         } elseif (isset($sitemapJson->url)) {
             foreach ($sitemapJson->url as $url) {
-                if ($this->includeInformation) {
-                    yield (string)$url->loc => [
-                        'priority' => (string)$url->priority,
-                        'lastmod' => (string)$url->lastmod,
-                    ];
+                if ($this->asArray) {
+                    yield (string)$url->loc => (array)$url;
                 } else {
                     yield (string)$url->loc;
                 }
             }
         } else {
             $offset = 0;
-            while (preg_match('/(\S+)/', $string, $match, PREG_OFFSET_CAPTURE, $offset)) {
+            while (preg_match('/(\S+)/', $xml, $match, PREG_OFFSET_CAPTURE, $offset)) {
                 $offset = $match[0][1] + strlen($match[0][0]);
                 yield $match[0][0];
             }
-        }
-    }
-
-    /**
-     * Method used to parse compressed sitemaps such as example.com/sitemap.xml.gz
-     *
-     * @param string|null $url
-     * @return \Generator
-     * @throws GoogleSitemapParserException
-     */
-    public function parseCompressed($url = null)
-    {
-        $url = ($url === null) ? $this->url : $url;
-        foreach ($this->parseFromXMLString($this->downloadAndExtractGZIP($url)) as $key => $subPost) {
-            yield $key => $subPost;
         }
     }
 
@@ -160,72 +212,6 @@ class GoogleSitemapParser
     }
 
     /**
-     * @param string $url The URL of the gzip
-     * @return string the uncompressed downloaded content
-     * @throws Curl\Exception\ProtectedOptionException
-     * @throws GoogleSitemapParserException
-     */
-    protected function downloadAndExtractGZIP($url)
-    {
-        $default_options = [CURLOPT_ENCODING => ''];
-        try {
-            $response = $this->getResponse($url, $default_options);
-            return gzdecode($response->getContent());
-        } catch (Curl\Exception\CurlErrorException $e) {
-            throw new GoogleSitemapParserException($e->getMessage());
-        }
-    }
-
-
-    /**
-     * Returns the content of a page
-     * @param string $url the URL that should be gathered
-     * @return mixed raw URL content
-     * @throws GoogleSitemapParserException
-     */
-    protected function getContent($url)
-    {
-        /** @var \Symfony\Component\HttpFoundation\Response $response */
-        $response = $this->getResponse($url);
-        if ($response->getStatusCode() < 200 || $response->getStatusCode() >= 400) {
-            throw new GoogleSitemapParserException('The server responds with a bad status code: ' . $response->getStatusCode());
-        }
-        return $response->getContent();
-    }
-
-    /**
-     * Get URL response
-     *
-     * @param string $url The url to request
-     * @param array $options Default request options
-     * @return \Symfony\Component\HttpFoundation\Response
-     * @throws GoogleSitemapParserException
-     */
-    protected function getResponse($url, $options = [])
-    {
-        if (!filter_var($url, FILTER_VALIDATE_URL)) {
-            throw new GoogleSitemapParserException('Passed URL not valid according to filter_var function');
-        }
-        try {
-            $request = new Request($url);
-            // Apply default CURL options
-            foreach ($options as $key => $value) {
-                $request->setOption($key, $value);
-            }
-            // Apply custom CURL options
-            if (isset($this->config['curl'])) {
-                foreach ($this->config['curl'] as $key => $value) {
-                    $request->setOption($key, $value);
-                }
-            }
-            $request->execute();
-            return $request->getResponse();
-        } catch (Curl\Exception\CurlErrorException $e) {
-            throw new GoogleSitemapParserException($e->getMessage());
-        }
-    }
-
-    /**
      * Setter for the url variable. Used to modify the URL
      *
      * @param string $url The url that should be set
@@ -238,14 +224,14 @@ class GoogleSitemapParser
     }
 
     /**
-     * Setter for the includePriority variable. Used to modify if the response should contain includePriority
+     * Setter for the asArray variable. Used to modify if the response should contain Priority, Last modified time, etc
      *
-     * @param bool $includeInformation Whether the priority of the sitemap entry should be also gathered
+     * @param bool $asArray Whether the priority of the sitemap entry should be also gathered
      * @return $this Returns itself
      */
-    public function setIncludeInformation($includeInformation)
+    public function setAsArray($asArray)
     {
-        $this->includeInformation = $includeInformation;
+        $this->asArray = $asArray;
         return $this;
     }
 }

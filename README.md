@@ -8,7 +8,7 @@ Install via [composer](https://getcomposer.org):
 ```javascript
 {
     "require": {
-        "tzfrs/googlesitemapparser": "1.0.7"
+        "tzfrs/googlesitemapparser": "2.0.*"
     }
 }
 ```
@@ -48,7 +48,7 @@ use \tzfrs\GoogleSitemapParser;
 use \tzfrs\Exceptions\GoogleSitemapParserException;
 
 try {
-    $posts = (new GoogleSitemapParser('http://www.sainsburys.co.uk/robots.txt'))->parseFromRobots();
+    $posts = (new GoogleSitemapParser('http://www.sainsburys.co.uk/robots.txt'))->parse();
     foreach ($posts as $post) {
         print $post . '<br>';
     }
@@ -68,26 +68,7 @@ require __DIR__ . '/vendor/autoload.php';
 use \tzfrs\GoogleSitemapParser;
 use \tzfrs\Exceptions\GoogleSitemapParserException;
 try {
-    $posts = (new GoogleSitemapParser('http://www.sainsburys.co.uk/robots.txt', true))->parseFromRobots();
-    foreach ($posts as $post=>$priority) {
-        print 'URL: '. $post . '<br>Priority: '. $priority . '<hr>';
-    }
-} catch (GoogleSitemapParserException $e) {
-    print $e->getMessage();
-}
-```
-
-### Parsing compressed sitemaps
-If you have an URL to a compressed sitemap such as example.com/sitemap.xml.gz then you need to use this method
-
-```php
-<?php
-require __DIR__ . '/vendor/autoload.php';
-
-use \tzfrs\GoogleSitemapParser;
-use \tzfrs\Exceptions\GoogleSitemapParserException;
-try {
-    $posts = (new GoogleSitemapParser('http://www.sainsburys.co.uk/wcsstore/robots/sitemap_10151_4.xml.gz'))->parseCompressed();
+    $posts = (new GoogleSitemapParser('http://www.sainsburys.co.uk/robots.txt', true))->parse();
     foreach ($posts as $post=>$priority) {
         print 'URL: '. $post . '<br>Priority: '. $priority . '<hr>';
     }
@@ -98,9 +79,8 @@ try {
 
 ## Methods
 
-`parse`  
-`parseFromRobots`
+`parse`
 
 Contributing is surely allowed! :-)
 
-See the file `LICENSE` for licensing informations
+See the file `LICENSE` for licensing information
