@@ -126,7 +126,7 @@ class GoogleSitemapParser
      * @param string $content robots.txt content
      * @return \Generator
      */
-    protected function parseRobotstxt($content)
+    public function parseRobotstxt($content)
     {
         preg_match_all('#Sitemap:\s*(.*)#', $content, $matchatches);
         if (isset($matchatches[1])) {
