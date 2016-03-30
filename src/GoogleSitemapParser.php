@@ -22,10 +22,10 @@ class GoogleSitemapParser
     protected $url = null;
 
     /**
-     * Whether the priority of the sitemap entry should be also gathered
+     * Whether other tags of the url entry also should be returned
      * @var bool
      */
-    protected $asArray = false;
+    protected $returnTags = false;
 
     /**
      * Configuration options
@@ -37,11 +37,11 @@ class GoogleSitemapParser
      * The constructor checks if the SimpleXML Extension is loaded and afterwards sets the URL to parse
      *
      * @param string $url The URL of the Sitemap
-     * @param bool $asArray Whether the priority of the sitemap entry should be also gathered
+     * @param bool $returnTags Whether other tags of the url entry also should be returned
      * @param array $config Configuration options
      * @throws GoogleSitemapParserException
      */
-    public function __construct($url, $asArray = false, $config = [])
+    public function __construct($url, $returnTags = false, $config = [])
     {
         if (!extension_loaded('simplexml')) {
             throw new GoogleSitemapParserException('The extension `simplexml` must be installed and loaded for this library');
@@ -51,7 +51,7 @@ class GoogleSitemapParser
         @mb_internal_encoding('UTF-8');
 
         $this->url = $url;
-        $this->asArray = $asArray;
+        $this->returnTags = $returnTags;
         $this->config = $config;
     }
 
@@ -59,6 +59,7 @@ class GoogleSitemapParser
      * This method reads in the json-decoded XML String from the page and analyzes it. It checks whether
      * the URLs in the sitemap are posts or links to a sub-sitemap. Dependent on that the method then reads in the
      * sitemap urls
+     *
      * @param string $url Optional parameter when not wanting to use the current set URL
      * @return \Generator
      * @throws GoogleSitemapParserException
@@ -70,6 +71,7 @@ class GoogleSitemapParser
         if (parse_url($url, PHP_URL_PATH) == '/robots.txt') {
             return $this->parseRobotstxt($response);
         }
+        // Check if content is an gzip file
         if (mb_strpos($response, "\x1f" . "\x8b" . "\x08", 0, "US-ASCII") === 0) {
             $response = gzdecode($response);
         }
@@ -77,8 +79,9 @@ class GoogleSitemapParser
     }
 
     /**
-     * Returns the content of a page
-     * @param string $url the URL that should be gathered
+     * Returns the content of an URL
+     *
+     * @param string $url the URL to request
      * @return mixed raw URL content
      * @throws GoogleSitemapParserException
      */
@@ -128,9 +131,9 @@ class GoogleSitemapParser
      */
     public function parseRobotstxt($content)
     {
-        preg_match_all('#Sitemap:\s*(.*)#', $content, $matchatches);
-        if (isset($matchatches[1])) {
-            foreach ($matchatches[1] as $sitemap) {
+        preg_match_all('#Sitemap:\s*(.*)#', $content, $match);
+        if (isset($match[1])) {
+            foreach ($match[1] as $sitemap) {
                 if ($this->isSitemapURL($sitemap)) {
                     foreach ($this->parse($sitemap) as $key => $subPost) {
                         yield $key => $subPost;
@@ -148,7 +151,7 @@ class GoogleSitemapParser
      */
     protected function isSitemapURL($url)
     {
-        return is_string($url) && (
+        return parse_url($url) !== false && is_string($url) && (
             substr($url, -4) === ".xml" ||
             substr($url, -7) === '.xml.gz'
         );
@@ -179,7 +182,7 @@ class GoogleSitemapParser
             }
         } elseif (isset($sitemapJson->url)) {
             foreach ($sitemapJson->url as $url) {
-                if ($this->asArray) {
+                if ($this->returnTags) {
                     yield (string)$url->loc => (array)$url;
                 } else {
                     yield (string)$url->loc;
@@ -197,13 +200,13 @@ class GoogleSitemapParser
     /**
      * Checks if the XML from the given page is valid or not
      *
-     * @param string $xmlstr The XML to be checked
+     * @param string $xml The XML to be checked
      * @return bool
      */
-    protected function validateXML($xmlstr)
+    protected function validateXML($xml)
     {
         libxml_use_internal_errors(true);
-        $doc = simplexml_load_string($xmlstr);
+        $doc = simplexml_load_string($xml);
         if (!$doc) {
             libxml_clear_errors();
             return false;
@@ -224,14 +227,14 @@ class GoogleSitemapParser
     }
 
     /**
-     * Setter for the asArray variable. Used to modify if the response should contain Priority, Last modified time, etc
+     * Setter for the returnTags variable. Used to modify if an array with tags of the url entry shuld be returned
      *
-     * @param bool $asArray Whether the priority of the sitemap entry should be also gathered
+     * @param bool $returnTags Whether the priority of the sitemap entry should be also gathered
      * @return $this Returns itself
      */
-    public function setAsArray($asArray)
+    public function setReturnTags($returnTags)
     {
-        $this->asArray = $asArray;
+        $this->returnTags = $returnTags;
         return $this;
     }
 }
