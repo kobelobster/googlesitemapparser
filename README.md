@@ -15,17 +15,22 @@ Install via [composer](https://getcomposer.org):
 
 Run `composer install` or `composer update`.
 
+## Features
+#### Basic parsing
+Parses sitemap URLs of your choice. Supports `.xml`, `.xml.gz` and plain text.
+#### Parsing from robots.txt
+Searches for Sitemap entries in the robots.txt and parses those files. Also downloads/extracts gzip compressed sitemaps and searches for them
+
+
 ## Getting Started
 
 ### Basic parsing
-Parses the data from the sitemap.xml of your server. Supports .xml and text format
+Returns an list of URLs.
+
 
 ```php
-<?php
-require __DIR__ . '/vendor/autoload.php';
-
-use \tzfrs\GoogleSitemapParser;
-use \tzfrs\Exceptions\GoogleSitemapParserException;
+use tzfrs\Exceptions\GoogleSitemapParserException;
+use tzfrs\GoogleSitemapParser;
 
 try {
     $posts = (new GoogleSitemapParser('http://tzfrs.de/sitemap.xml'))->parse();
@@ -37,45 +42,48 @@ try {
 }
 ```
 
-### Parsing from robots.txt
-Searches for Sitemap entries in the robots.txt and parses those files. Also downloads/extracts gzip compressed sitemaps and searches for them
+### Advanced parsing
+Includes priority and last modified timestamp in the response
+To enable this, just set the 2nd parameter of the constructor to true.
+
 
 ```php
-<?php
-require __DIR__ . '/vendor/autoload.php';
-
-use \tzfrs\GoogleSitemapParser;
-use \tzfrs\Exceptions\GoogleSitemapParserException;
+use tzfrs\Exceptions\GoogleSitemapParserException;
+use tzfrs\GoogleSitemapParser;
 
 try {
-    $posts = (new GoogleSitemapParser('http://www.sainsburys.co.uk/robots.txt'))->parse();
+    $posts = (new GoogleSitemapParser('http://tzfrs.de/sitemap.xml', true))->parse();
     foreach ($posts as $post) {
-        print $post . '<br>';
+        print 'URL: ' . $post['loc'] . '<br>Priority: ' . $post['priority'] . '<br>LastMod: ' . $post['lastmod'] . '<hr>';
     }
 } catch (GoogleSitemapParserException $e) {
     print $e->getMessage();
 }
 ```
 
-### Including the priority for the sitemap entry in the response
-If you also want to get the priority of a sitemap set the 2nd parameter of the constructor to true 
-If the priority can't be found or is not set in the file an empty string will be returned.
+### Custom User-Agent
+To set any CURL options, including the User-Agent string, just include an array of options in the constructor.
 
 ```php
-<?php
-require __DIR__ . '/vendor/autoload.php';
+use tzfrs\Exceptions\GoogleSitemapParserException;
+use tzfrs\GoogleSitemapParser;
 
-use \tzfrs\GoogleSitemapParser;
-use \tzfrs\Exceptions\GoogleSitemapParserException;
+$config = [
+    'curl' => [
+        CURLOPT_USERAGENT => 'tzfrs/GoogleSitemapParser',
+    ]
+];
+
 try {
-    $posts = (new GoogleSitemapParser('http://www.sainsburys.co.uk/robots.txt', true))->parse();
-    foreach ($posts as $post=>$priority) {
-        print 'URL: '. $post . '<br>Priority: '. $priority . '<hr>';
+    $posts = (new GoogleSitemapParser('http://tzfrs.de/sitemap.xml', true, $config))->parse();
+    foreach ($posts as $post) {
+        print 'URL: ' . $post['loc'] . '<br>Priority: ' . $post['priority'] . '<br>LastMod: ' . $post['lastmod'] . '<hr>';
     }
 } catch (GoogleSitemapParserException $e) {
     print $e->getMessage();
 }
 ```
+
 
 ## Methods
 
