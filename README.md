@@ -16,10 +16,10 @@ Install via [composer](https://getcomposer.org):
 Run `composer install` or `composer update`.
 
 ## Features
-#### Basic parsing
+#### Sitemap
 Parses sitemap URLs of your choice. Supports `.xml`, `.xml.gz` and plain text.
-#### Parsing from robots.txt
-Searches for Sitemap entries in the robots.txt and parses those files. Also downloads/extracts gzip compressed sitemaps and searches for them
+#### robots.txt
+Searches for Sitemap entries in the robots.txt and parses those files.
 
 
 ## Getting Started
@@ -43,7 +43,8 @@ try {
 ```
 
 ### Advanced parsing
-Includes priority and last modified timestamp in the response
+Includes priority and last modified timestamp in the response.
+
 To enable this, just set the 2nd parameter of the constructor to true.
 
 
@@ -61,7 +62,7 @@ try {
 }
 ```
 
-### Custom User-Agent
+### Custom User-Agent string
 To set any CURL options, including the User-Agent string, just include an array of options in the constructor.
 
 ```php
@@ -85,9 +86,6 @@ try {
 ```
 
 
-## Methods
-
-- `parse`
 
 Contributing is surely allowed! :-)
 
