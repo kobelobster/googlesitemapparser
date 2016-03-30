@@ -11,7 +11,9 @@ $config = [
 ];
 
 try {
-    $posts = (new GoogleSitemapParser('http://tzfrs.de/sitemap.xml', true, $config))->parse();
+    $parser = new GoogleSitemapParser('http://tzfrs.de/sitemap.xml', $config);
+    $parser->returnTags(true);
+    $posts = $parser->parse();
     foreach ($posts as $post) {
         print 'URL: ' . $post['loc'] . '<br>Priority: ' . $post['priority'] . '<br>LastMod: ' . $post['lastmod'] . '<hr>';
     }

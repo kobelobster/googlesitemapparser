@@ -37,11 +37,10 @@ class GoogleSitemapParser
      * The constructor checks if the SimpleXML Extension is loaded and afterwards sets the URL to parse
      *
      * @param string $url The URL of the Sitemap
-     * @param bool $returnTags Whether other tags of the url entry also should be returned
      * @param array $config Configuration options
      * @throws GoogleSitemapParserException
      */
-    public function __construct($url, $returnTags = false, $config = [])
+    public function __construct($url, $config = [])
     {
         if (!extension_loaded('simplexml')) {
             throw new GoogleSitemapParserException('The extension `simplexml` must be installed and loaded for this library');
@@ -51,7 +50,6 @@ class GoogleSitemapParser
         @mb_internal_encoding('UTF-8');
 
         $this->url = $url;
-        $this->returnTags = $returnTags;
         $this->config = $config;
     }
 
@@ -215,24 +213,12 @@ class GoogleSitemapParser
     }
 
     /**
-     * Setter for the url variable. Used to modify the URL
-     *
-     * @param string $url The url that should be set
-     * @return $this Returns itself
-     */
-    public function setUrl($url)
-    {
-        $this->url = $url;
-        return $this;
-    }
-
-    /**
      * Setter for the returnTags variable. Used to modify if an array with tags of the url entry shuld be returned
      *
      * @param bool $returnTags Whether the priority of the sitemap entry should be also gathered
      * @return $this Returns itself
      */
-    public function setReturnTags($returnTags)
+    public function returnTags($returnTags = true)
     {
         $this->returnTags = $returnTags;
         return $this;

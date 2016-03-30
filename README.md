@@ -1,9 +1,8 @@
 # Google Sitemap-Parser
 An easy-to-use library to parse sitemaps compliant with the Google Standard
 
-## Install
-
-Install via [composer](https://getcomposer.org):
+## Installation
+The library is available for install via Composer package. To install, add the requirement to your `composer.json` file, like this:
 
 ```json
 {
@@ -13,7 +12,9 @@ Install via [composer](https://getcomposer.org):
 }
 ```
 
-Run `composer install` or `composer update`.
+Then run `composer update`.
+
+Find out more about Composer here: [https://getcomposer.org](https://getcomposer.org):
 
 ## Features
 #### Sitemap
@@ -53,7 +54,9 @@ use tzfrs\Exceptions\GoogleSitemapParserException;
 use tzfrs\GoogleSitemapParser;
 
 try {
-    $posts = (new GoogleSitemapParser('http://tzfrs.de/sitemap.xml', true))->parse();
+    $parser = new GoogleSitemapParser('http://tzfrs.de/sitemap.xml');
+    $parser->returnTags(true);
+    $posts = $parser->parse();
     foreach ($posts as $post) {
         print 'URL: ' . $post['loc'] . '<br>Priority: ' . $post['priority'] . '<br>LastMod: ' . $post['lastmod'] . '<hr>';
     }
@@ -76,7 +79,9 @@ $config = [
 ];
 
 try {
-    $posts = (new GoogleSitemapParser('http://tzfrs.de/sitemap.xml', true, $config))->parse();
+    $parser = new GoogleSitemapParser('http://tzfrs.de/sitemap.xml', $config);
+    $parser->returnTags(true);
+    $posts = $parser->parse();
     foreach ($posts as $post) {
         print 'URL: ' . $post['loc'] . '<br>Priority: ' . $post['priority'] . '<br>LastMod: ' . $post['lastmod'] . '<hr>';
     }

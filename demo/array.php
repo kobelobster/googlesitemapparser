@@ -5,7 +5,9 @@ use tzfrs\Exceptions\GoogleSitemapParserException;
 use tzfrs\GoogleSitemapParser;
 
 try {
-    $posts = (new GoogleSitemapParser('http://tzfrs.de/sitemap.xml', true))->parse();
+    $parser = new GoogleSitemapParser('http://tzfrs.de/sitemap.xml');
+    $parser->returnTags(true);
+    $posts = $parser->parse();
     foreach ($posts as $post) {
         print 'URL: ' . $post['loc'] . '<br>Priority: ' . $post['priority'] . '<br>LastMod: ' . $post['lastmod'] . '<hr>';
     }
