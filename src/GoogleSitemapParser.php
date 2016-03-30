@@ -67,11 +67,11 @@ class GoogleSitemapParser
     {
         $url = ($url === null) ? $this->url : $url;
         $response = $this->getContent($url);
-        if (mb_strpos($response, "\x1f" . "\x8b" . "\x08", 0, "US-ASCII") === 0) {
-            $response = gzdecode($response);
-        }
         if (parse_url($url, PHP_URL_PATH) == '/robots.txt') {
             return $this->parseRobotstxt($response);
+        }
+        if (mb_strpos($response, "\x1f" . "\x8b" . "\x08", 0, "US-ASCII") === 0) {
+            $response = gzdecode($response);
         }
         return $this->parseXML($response);
     }
@@ -171,8 +171,8 @@ class GoogleSitemapParser
 
         if (isset($sitemapJson->sitemap)) {
             foreach ($sitemapJson->sitemap as $post) {
-                if ($this->isSitemapURL($post->loc)) {
-                    foreach ($this->parse($post->loc) as $subPost) {
+                if ($this->isSitemapURL((string)$post->loc)) {
+                    foreach ($this->parse((string)$post->loc) as $subPost) {
                         yield $subPost;
                     }
                 }

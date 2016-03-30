@@ -5,7 +5,7 @@ An easy-to-use library to parse sitemaps compliant with the Google Standard
 
 Install via [composer](https://getcomposer.org):
 
-```javascript
+```json
 {
     "require": {
         "tzfrs/googlesitemapparser": "2.0.*"
@@ -87,7 +87,7 @@ try {
 
 ## Methods
 
-`parse`
+- `parse`
 
 Contributing is surely allowed! :-)
 
