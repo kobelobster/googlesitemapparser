@@ -164,7 +164,7 @@ class GoogleSitemapParser
             $request->execute();
             /** @var \Symfony\Component\HttpFoundation\Response $response */
             $response = $request->getResponse();
-            return $response->getContent();
+            return gzdecode($response->getContent());
         } catch (Curl\Exception\CurlErrorException $e) {
             throw new GoogleSitemapParserException($e->getMessage());
         }
