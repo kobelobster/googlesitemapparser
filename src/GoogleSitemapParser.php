@@ -164,10 +164,9 @@ class GoogleSitemapParser
             $request->execute();
             /** @var \Symfony\Component\HttpFoundation\Response $response */
             $response = $request->getResponse();
-            if ($response->headers->get('Content-Type') == "application/xml") 
-                return $response->getContent();
-            else
-                return gzdecode($response->getContent());
+            return $response->headers->get('Content-Type') === 'application/xml'
+                ? $response->getContent()
+                : gzdecode($response->getContent());
         } catch (Curl\Exception\CurlErrorException $e) {
             throw new GoogleSitemapParserException($e->getMessage());
         }
