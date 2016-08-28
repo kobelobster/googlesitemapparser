@@ -62,9 +62,9 @@ class GoogleSitemapParser
     {
         $url = ($url === null) ? $this->url : $url;
         $response = $this->getContent($url);
-        preg_match_all('#Sitemap:\s*(.*)#', $response, $matchatches);
-        if (isset($matchatches[1])) {
-            foreach ($matchatches[1] as $sitemap) {
+        preg_match_all('#Sitemap:\s*(.*)#', $response, $matches);
+        if (isset($matches[1])) {
+            foreach ($matches[1] as $sitemap) {
                 if (substr($sitemap, -3) === "xml") {
                     foreach ($this->parse($sitemap) as $key=>$subPost) {
                         yield $key=>$subPost;
@@ -164,7 +164,9 @@ class GoogleSitemapParser
             $request->execute();
             /** @var \Symfony\Component\HttpFoundation\Response $response */
             $response = $request->getResponse();
-            return gzdecode($response->getContent());
+            return $response->headers->get('Content-Type') === 'application/xml'
+                ? $response->getContent()
+                : gzdecode($response->getContent());
         } catch (Curl\Exception\CurlErrorException $e) {
             throw new GoogleSitemapParserException($e->getMessage());
         }
